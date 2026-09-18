@@ -1,0 +1,8 @@
+Invoice No,Date,Vendor,Description,Amount (INR),Status
+INV-1001,2026-03-04,ABC Ltd,Substation upgrade,62000,Paid
+INV-1002,2026-03-11,ABC Ltd,Spare parts,48500,Paid
+INV-1003,2026-03-19,Bharat Switchgear Pvt Ltd,Breaker servicing,125000,Unpaid
+INV-1004,2026-04-02,ABC Ltd,Annual maintenance,90000,Unpaid
+INV-1005,2026-04-15,Nova Instruments LLP,Calibration,27500,Paid
+INV-1006,2026-05-06,Bharat Switchgear Pvt Ltd,Emergency repair,158000,Paid
+INV-1007,2026-05-21,ABC Ltd,Site inspection,15000,Paid

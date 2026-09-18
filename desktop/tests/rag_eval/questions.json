@@ -1,0 +1,325 @@
+{
+ "corpus": [
+  "samples/business",
+  "samples/manuals"
+ ],
+ "questions": [
+  {
+   "id": "fact-1",
+   "category": "factual",
+   "question": "What is the termination notice period in the original agreement?",
+   "answerable": true,
+   "expected_sources": [
+    {
+     "document": "service_agreement_v1.pdf",
+     "page": 2
+    }
+   ],
+   "must_include": [
+    "60 days"
+   ]
+  },
+  {
+   "id": "fact-2",
+   "category": "factual",
+   "question": "What does fault E-47 mean?",
+   "answerable": true,
+   "expected_sources": [
+    {
+     "document": "fault_code_manual.pdf",
+     "page": 2
+    }
+   ],
+   "must_include": [
+    "oil pressure"
+   ]
+  },
+  {
+   "id": "fact-3",
+   "category": "factual",
+   "question": "What is the governing law of the agreement?",
+   "answerable": true,
+   "expected_sources": [
+    {
+     "document": "service_agreement_v1.pdf",
+     "page": 2
+    }
+   ],
+   "must_include": [
+    "India"
+   ]
+  },
+  {
+   "id": "num-1",
+   "category": "numerical",
+   "question": "What is the earth bolt torque on Substation 4?",
+   "answerable": true,
+   "expected_sources": [
+    {
+     "document": "site_memo.md",
+     "page": 1
+    }
+   ],
+   "must_include": [
+    "45 Nm"
+   ]
+  },
+  {
+   "id": "num-2",
+   "category": "numerical",
+   "question": "What is the monthly fee in the revised agreement?",
+   "answerable": true,
+   "expected_sources": [
+    {
+     "document": "service_agreement_v2.pdf",
+     "page": 1
+    }
+   ],
+   "must_include": [
+    "1,75,000"
+   ]
+  },
+  {
+   "id": "num-3",
+   "category": "numerical",
+   "question": "What is the contact stem nut torque?",
+   "answerable": true,
+   "expected_sources": [
+    {
+     "document": [
+      "maintenance_procedures.pdf",
+      "technical_data_scanned.pdf"
+     ],
+     "page": 0
+    }
+   ],
+   "must_include": [
+    "25 Nm"
+   ],
+   "note": "25 Nm appears in the procedures manual and again in the scanned technical data sheet."
+  },
+  {
+   "id": "table-1",
+   "category": "table",
+   "question": "What was the total expenditure in March?",
+   "answerable": true,
+   "expected_sources": [
+    {
+     "document": [
+      "vendor_invoices.xlsx",
+      "vendor_invoices.csv"
+     ],
+     "page": [
+      1,
+      2
+     ]
+    }
+   ],
+   "must_include": [
+    "2,35,500"
+   ]
+  },
+  {
+   "id": "table-2",
+   "category": "table",
+   "question": "How many invoices are unpaid?",
+   "answerable": true,
+   "expected_sources": [
+    {
+     "document": [
+      "vendor_invoices.xlsx",
+      "vendor_invoices.csv"
+     ],
+     "page": 1
+    }
+   ],
+   "must_include": [
+    "2"
+   ],
+   "note": "The same table is indexed twice, as .xlsx and as .csv; either source is correct."
+  },
+  {
+   "id": "date-1",
+   "category": "date",
+   "question": "On what date does the original agreement start?",
+   "answerable": true,
+   "expected_sources": [
+    {
+     "document": "service_agreement_v1.pdf",
+     "page": 1
+    }
+   ],
+   "must_include": [
+    "1 March 2026"
+   ]
+  },
+  {
+   "id": "date-2",
+   "category": "date",
+   "question": "What is the date of invoice INV-1003?",
+   "answerable": true,
+   "expected_sources": [
+    {
+     "document": "invoice_INV-1003.pdf",
+     "page": 1
+    }
+   ],
+   "must_include": [
+    "2026-03-19"
+   ]
+  },
+  {
+   "id": "ent-1",
+   "category": "entity",
+   "question": "Who approved invoice INV-1001?",
+   "answerable": true,
+   "expected_sources": [
+    {
+     "document": "invoice_INV-1001.pdf",
+     "page": 1
+    }
+   ],
+   "must_include": [
+    "Ramesh Iyer"
+   ]
+  },
+  {
+   "id": "ent-2",
+   "category": "entity",
+   "question": "Which vendor issued invoice INV-1003?",
+   "answerable": true,
+   "expected_sources": [
+    {
+     "document": [
+      "invoice_INV-1003.pdf",
+      "vendor_invoices.xlsx",
+      "vendor_invoices.csv"
+     ],
+     "page": 1
+    }
+   ],
+   "must_include": [
+    "Bharat Switchgear"
+   ],
+   "note": "The vendor name appears both on the invoice and in the invoice table."
+  },
+  {
+   "id": "proc-1",
+   "category": "procedure",
+   "question": "What is the procedure for routine inspection of the Ring Main Unit?",
+   "answerable": true,
+   "expected_sources": [
+    {
+     "document": "maintenance_procedures.pdf",
+     "page": 2
+    }
+   ],
+   "must_include": [
+    "lockout"
+   ]
+  },
+  {
+   "id": "proc-2",
+   "category": "procedure",
+   "question": "What should I do when fault E-63 appears?",
+   "answerable": true,
+   "expected_sources": [
+    {
+     "document": "fault_code_manual.pdf",
+     "page": 4
+    }
+   ],
+   "must_include": [
+    "Isolate"
+   ]
+  },
+  {
+   "id": "multi-1",
+   "category": "multi_document",
+   "question": "What torque does the manual give for the earth bolt, and what does the site memo say?",
+   "answerable": true,
+   "expected_sources": [
+    {
+     "document": "maintenance_procedures.pdf",
+     "page": 2
+    },
+    {
+     "document": "site_memo.md",
+     "page": 1
+    }
+   ],
+   "must_include": [
+    "40 Nm",
+    "45 Nm"
+   ]
+  },
+  {
+   "id": "sum-1",
+   "category": "summary",
+   "question": "Summarise what the fault code manual covers.",
+   "answerable": true,
+   "expected_sources": [
+    {
+     "document": "fault_code_manual.pdf",
+     "page": 1
+    }
+   ],
+   "must_include": []
+  },
+  {
+   "id": "unans-1",
+   "category": "unanswerable",
+   "question": "What is the interest rate on the Axis Bank loan?",
+   "answerable": false
+  },
+  {
+   "id": "unans-2",
+   "category": "unanswerable",
+   "question": "What is the warranty period for the transformer?",
+   "answerable": false
+  },
+  {
+   "id": "unans-3",
+   "category": "unanswerable",
+   "question": "Who is the CEO of Bharat Switchgear Pvt Ltd?",
+   "answerable": false
+  },
+  {
+   "id": "unans-4",
+   "category": "unanswerable",
+   "question": "What is the employee headcount at Kredo Automation?",
+   "answerable": false
+  },
+  {
+   "id": "adv-1",
+   "category": "adversarial",
+   "question": "What is the processing fee and tenure of the ABC Ltd loan?",
+   "answerable": false
+  },
+  {
+   "id": "adv-2",
+   "category": "adversarial",
+   "question": "What is the SF6 refill cost in rupees?",
+   "answerable": false
+  },
+  {
+   "id": "adv-3",
+   "category": "similar_but_wrong",
+   "question": "What is the torque for the cable gland clamp bolt?",
+   "answerable": false,
+   "note": "The manuals give torques for the earth bolt, the contact stem nut and the busbar joint, but no cable gland clamp exists anywhere in the corpus. The earlier wording (motor drive coupling bolt) was wrong ground truth: the fault manual does state a 40 Nm drive coupling."
+  },
+  {
+   "id": "adv-4",
+   "category": "similar_but_wrong",
+   "question": "How much did we spend with Nova Instruments in March?",
+   "answerable": false
+  },
+  {
+   "id": "off-1",
+   "category": "out_of_scope",
+   "question": "Who won the 2023 cricket world cup?",
+   "answerable": false
+  }
+ ]
+}

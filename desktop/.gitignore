@@ -1,0 +1,91 @@
+# ── desktop/ : the Ragly application ─────────────────────────────────────────
+# Rule of thumb: anything a fresh machine can rebuild or re-download stays out.
+# What must stay IN: ragly_backend/, ui/src/, ui/dist/ (no build step runs on a
+# clone, so the built UI is the shipped UI), scripts/, tests/, engines.json,
+# requirements*.txt, samples/ and README.md.
+
+# ── Python environment ──────────────────────────────────────────────────────
+.venv/
+venv/
+env/
+ENV/
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+# anchored with a leading slash on purpose: a bare "dist/" would also ignore
+# ui/dist, which is the built front end and MUST stay in the repo
+/build/
+/dist/
+pip-wheel-metadata/
+
+# ── Test and tooling caches ─────────────────────────────────────────────────
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.hypothesis/
+
+# ── Models: ~2.4 GB, downloaded by scripts/download_models.py ───────────────
+models/
+*.gguf
+*.onnx
+*.onnx_data
+*.safetensors
+
+# ── Native binaries: llama.cpp / GenieX, installed by scripts/doctor.ps1 ────
+bin/
+*.dll
+*.exe
+*.so
+*.dylib
+*.lib
+*.pdb
+
+# ── The user's workspace: their documents, the index, their passcode ────────
+# These are private data, not source. Never commit them.
+data/
+data_*/
+!data_samples/
+*.db
+*.db-wal
+*.db-shm
+*.sqlite3
+auth.json
+settings.json
+
+# ── Generated output ────────────────────────────────────────────────────────
+*.log
+logs/
+eval/report.json
+eval/*.csv
+eval/runs/
+sweep.json
+.ragly/
+
+# ── Node / front end ────────────────────────────────────────────────────────
+ui/node_modules/
+node_modules/
+ui/dist/*.map
+ui/.vite/
+npm-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# ── Editors and OS ──────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Secrets ─────────────────────────────────────────────────────────────────
+.env
+.env.*
+*.pem
+*.key

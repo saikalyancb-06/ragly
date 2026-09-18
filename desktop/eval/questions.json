@@ -1,0 +1,26 @@
+{
+  "corpus": "samples/manuals",
+  "questions": [
+    {"q": "What does fault E-47 mean?", "doc": "fault_code_manual.pdf", "must_include": ["oil pressure"]},
+    {"q": "What should I do for E 63?", "doc": "fault_code_manual.pdf", "must_include": ["Isolate", "gas"]},
+    {"q": "What is the meaning of F-12?", "doc": "fault_code_manual.pdf", "must_include": ["Auxiliary"]},
+    {"q": "F21 keeps appearing, what do I check?", "doc": "fault_code_manual.pdf", "must_include": ["limit switch"]},
+    {"q": "What does E52 indicate?", "doc": "fault_code_manual.pdf", "must_include": ["temperature"]},
+    {"q": "What is the earth bolt torque for the RMU?", "doc": "maintenance_procedures.pdf", "must_include": ["40 Nm"]},
+    {"q": "Torque for the HV terminal bolts?", "doc": "maintenance_procedures.pdf", "must_include": ["55 Nm"]},
+    {"q": "What is the contact stem nut torque?", "doc": "maintenance_procedures.pdf", "must_include": ["25 Nm"]},
+    {"q": "What is the procedure for routine inspection of the Ring Main Unit?", "doc": "maintenance_procedures.pdf", "must_include": ["lockout", "voltage"]},
+    {"q": "Steps to replace the main CB contacts?", "doc": "maintenance_procedures.pdf", "must_include": ["arc chute"]},
+    {"q": "What safety warning applies before opening the RMU cover?", "doc": "maintenance_procedures.pdf", "must_include": ["live"]},
+    {"q": "What SF6 pressure should the gauge read?", "doc": "maintenance_procedures.pdf", "must_include": ["1.2 bar"]},
+    {"q": "What is the part number of the arc chute assembly?", "doc": "maintenance_procedures.pdf", "must_include": ["88123-A"]},
+    {"q": "What insulation resistance is required for the auxiliary transformer?", "doc": "maintenance_procedures.pdf", "must_include": ["100"]},
+    {"q": "What is the rated current of the switchgear?", "doc": "technical_data_scanned.pdf", "must_include": ["630"]},
+    {"q": "What is the short circuit rating?", "doc": "technical_data_scanned.pdf", "must_include": ["20 kA"]},
+    {"q": "What auxiliary supply voltages are used?", "doc": "technical_data_scanned.pdf", "must_include": ["230 V"]},
+    {"q": "What torque does Substation 4 use for the earth bolt?", "doc": "site_memo.md", "must_include": ["45 Nm"]},
+    {"q": "What is the cooling fan current draw?", "doc": "maintenance_procedures.pdf", "must_include": ["1.8 A"]},
+    {"q": "Who won the cricket world cup in 2023?", "expect_refusal": true},
+    {"q": "What is the warranty period for the transformer?", "expect_refusal": true}
+  ]
+}

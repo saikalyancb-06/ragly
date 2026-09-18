@@ -1,0 +1,29 @@
+{
+  "default_mode": "normal",
+  "normal": {
+    "label": "Normal (llama.cpp)",
+    "base_url": "http://127.0.0.1:8080/v1",
+    "model": "",
+    "gguf": "models/qwen2.5-3b-instruct-q4_k_m.gguf",
+    "ctx": 4096,
+    "threads": 0,
+    "manage_process": true,
+    "server_bin": "bin/llama/llama-server",
+    "notes": "llama.cpp llama-server. On the Snapdragon PC, setup downloads the Windows ARM64 build automatically."
+  },
+  "snapdragon": {
+    "label": "Snapdragon (GenieX)",
+    "base_url": "http://127.0.0.1:18181/v1",
+    "model": "ai-hub-models/Qwen3-4B-Instruct-2507",
+    "manage_process": true,
+    "start_command": [
+      "geniex",
+      "serve"
+    ],
+    "embed_providers": [
+      "QNNExecutionProvider",
+      "CPUExecutionProvider"
+    ],
+    "notes": "Pull the model first: geniex pull <model>. GGUF alternative on the same NPU/CPU: unsloth/Qwen3-4B-GGUF:Q4_0. See 'geniex serve -h'."
+  }
+}

@@ -1,0 +1,43 @@
+# ── Ragly / EdgeVault ────────────────────────────────────────────────────────
+# Repository root. The application lives in desktop/, which has its own
+# .gitignore for the heavy, machine-specific things (venv, models, index).
+
+# Notes and files dropped in by tooling, not part of the app
+Claude outputs/
+*.local
+scratch/
+tmp/
+
+# Editors and OS
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Never commit a model or a binary by accident, wherever it lands.
+# These are downloaded by scripts/download_models.py and doctor.ps1.
+*.gguf
+*.onnx
+*.onnx_data
+*.bin
+*.safetensors
+*.pt
+*.pth
+*.dll
+*.exe
+*.so
+*.dylib
+*.zip
+*.7z
+*.tar
+*.tar.gz
+
+# Archives of the venv or the workspace
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
