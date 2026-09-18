@@ -97,3 +97,53 @@ def test_upload_index_search_and_ask(client):
     doc_id = docs[0]["id"]
     assert client.delete(f"/api/documents/{doc_id}").status_code == 200
     assert client.get(f"/api/documents/{doc_id}").status_code == 404
+
+
+def test_a_document_left_queued_is_picked_up_again(tmp_path, monkeypatch):
+    """Regression: a restart during indexing put the row back to "queued" and nothing
+    re-enqueued it. The file then sat at "queued, 0 chunks" forever while its half-written
+    chunks stayed in the database."""
+    import time
+
+    monkeypatch.setenv("RAGLY_DATA", str(tmp_path))
+    from ragly_backend.store import Store
+
+    store = Store(tmp_path / "t.db")
+    doc_id = store.add_document("a.pdf", str(tmp_path / "a.pdf"), "sha", 10, 1)
+    store.set_status(doc_id, "queued")
+    assert doc_id in store.queued_ids()
+
+    # the watchdog is what closes this hole: an idle worker re-queues whatever is waiting
+    from ragly_backend.indexer import Indexer
+
+    picked: list[int] = []
+    indexer = Indexer.__new__(Indexer)
+    indexer.store = store
+    indexer.current = None
+    indexer._stop = __import__("threading").Event()
+    indexer.q = __import__("queue").Queue()
+    indexer.q.put = picked.append          # record instead of enqueueing
+
+    thread = __import__("threading").Thread(target=indexer._watchdog, args=(0.05,), daemon=True)
+    thread.start()
+    for _ in range(40):
+        if picked:
+            break
+        time.sleep(0.05)
+    indexer._stop.set()
+    assert picked and picked[0] == doc_id
+
+
+def test_counters_are_repaired_to_match_what_is_stored(tmp_path):
+    """"ready, 0 chunks" on a document that has chunks is a lie the row tells."""
+    from ragly_backend.store import Store
+
+    store = Store(tmp_path / "t.db")
+    doc_id = store.add_document("a.pdf", str(tmp_path / "a.pdf"), "sha", 10, 1)
+    store.conn.execute("INSERT INTO chunks(doc_id, page, ord, heading, text) VALUES (?,1,0,'','hello')",
+                       (doc_id,))
+    store.conn.commit()
+    assert store.get_document(doc_id)["chunk_count"] == 0
+
+    store.repair_counts()
+    assert store.get_document(doc_id)["chunk_count"] == 1

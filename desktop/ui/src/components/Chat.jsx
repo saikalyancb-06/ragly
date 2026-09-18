@@ -59,7 +59,7 @@ export default function Chat({
         )}
         {messages.map((m, i) => (
           <div className={`msg ${m.role}`} key={i}>
-            <div className="who">{m.role === 'user' ? 'You' : 'Ragly'}{m.heard ? ` · heard: “${m.heard}”` : ''}</div>
+            <div className="who">{m.role === 'user' ? 'You' : 'Falcon'}{m.heard ? ` · heard: “${m.heard}”` : ''}</div>
             <div className={`bubble ${m.refused ? 'refused' : ''}`}>
               {m.role === 'user' ? m.text : <Answer text={m.text || '…'} onCite={(n) => onCite(m, n)} />}
             </div>

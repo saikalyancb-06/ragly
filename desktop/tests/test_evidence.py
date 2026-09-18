@@ -256,3 +256,95 @@ def test_a_numbered_test_step_is_never_quoted():
                   doc_name="corpus.pdf", page=12)
     q = "What does NS-2048 mean?"
     assert quote_evidence(q, [hit], classify_question(q)) is None
+
+
+def test_a_summary_is_not_thrown_away_for_missing_citations():
+    """Regression: "Summarize <doc>" streamed three lines and then the whole answer was
+    replaced with "Not found in your documents", because strict grounding demands a citation
+    on every sentence — a test a summary cannot pass."""
+    import types
+
+    from ragly_backend.answer import Answerer
+    from ragly_backend.retriever import Hit
+
+    text = ("Northwind Traders reported revenue of 12,400 for the year. The board approved a "
+            "dividend. Operations expanded into two new regions.")
+    hit = Hit(chunk_id=1, doc_id=1, doc_name="report.docx", page=1, heading="", text=text,
+              score=1.0, vector_score=0.0, keyword_rank=None)
+
+    class FakeLLM:
+        def stream_chat(self, messages):
+            for token in ("Northwind Traders reported revenue of 12,400. ",
+                          "The board approved a dividend and operations expanded into two new regions."):
+                yield {"token": token}
+            yield {"stats": {}}
+
+    answerer = Answerer.__new__(Answerer)
+    answerer.store = types.SimpleNamespace(
+        list_documents=lambda: [{"id": 1, "name": "report.docx", "status": "ready"}],
+        chunk_ids=lambda doc_id: [1],
+        get_chunks=lambda ids: {1: {"id": 1, "doc_id": 1, "page": 1, "heading": "",
+                                    "text": text, "doc_name": "report.docx", "content_type": "text"}},
+        list_tables=lambda doc_ids=None: [])
+    answerer.retriever = types.SimpleNamespace(search=lambda *a, **k: ([hit], {}))
+    answerer.pack = None
+
+    events = list(answerer.stream(FakeLLM(), "Summarize report.docx", doc_ids=[1]))
+    done = [e for e in events if e["type"] == "done"][-1]
+    assert not done["refused"], done
+    assert "Not found" not in done["answer"]
+    assert "Northwind" in done["answer"]
+
+
+def test_an_answer_without_citation_markers_is_not_thrown_away():
+    """A 3B model often omits "[1]". The answer is still grounded: it states nothing the
+    sources lack. Refusing over a missing bracket produced "Not found in your documents"
+    for questions the documents plainly answer."""
+    import types
+
+    from ragly_backend.answer import Answerer
+    from ragly_backend.retriever import Hit
+
+    text = "The notice period is 60 days for either party."
+    hit = Hit(chunk_id=1, doc_id=1, doc_name="contract.pdf", page=2, heading="", text=text,
+              score=1.0, vector_score=0.9, keyword_rank=1)
+
+    class FakeLLM:
+        def stream_chat(self, messages):
+            yield {"token": "The notice period is 60 days."}
+            yield {"stats": {}}
+
+    answerer = Answerer.__new__(Answerer)
+    answerer.store = types.SimpleNamespace(list_tables=lambda doc_ids=None: [])
+    answerer.retriever = types.SimpleNamespace(search=lambda *a, **k: ([hit], {}))
+    answerer.pack = None
+
+    done = [e for e in answerer.stream(FakeLLM(), "What is the notice period?") if e["type"] == "done"][-1]
+    assert not done["refused"], done["grounding"]
+    assert "60 days" in done["answer"]
+
+
+def test_an_answer_with_a_figure_the_sources_lack_is_still_refused():
+    """The guard that matters is unchanged: invented numbers are never shown."""
+    import types
+
+    from ragly_backend.answer import Answerer
+    from ragly_backend.config import NOT_FOUND
+    from ragly_backend.retriever import Hit
+
+    hit = Hit(chunk_id=1, doc_id=1, doc_name="contract.pdf", page=2, heading="",
+              text="The notice period is 60 days for either party.",
+              score=1.0, vector_score=0.9, keyword_rank=1)
+
+    class FakeLLM:
+        def stream_chat(self, messages):
+            yield {"token": "The notice period is 90 days and the fee is 12,500."}
+            yield {"stats": {}}
+
+    answerer = Answerer.__new__(Answerer)
+    answerer.store = types.SimpleNamespace(list_tables=lambda doc_ids=None: [])
+    answerer.retriever = types.SimpleNamespace(search=lambda *a, **k: ([hit], {}))
+    answerer.pack = None
+
+    done = [e for e in answerer.stream(FakeLLM(), "What is the notice period?") if e["type"] == "done"][-1]
+    assert done["refused"] and done["answer"] == NOT_FOUND

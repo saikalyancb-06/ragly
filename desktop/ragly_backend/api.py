@@ -20,6 +20,7 @@ from .auth import Auth
 from .app import App
 from .config import ROOT, settings
 from .suggest import recommend
+from .visualize import Planner
 from .hardware import bench
 from .ingest import OCR, render_page_png
 from .pipeline import ALL_SUPPORTED as SUPPORTED
@@ -54,7 +55,7 @@ async def lifespan(_: FastAPI):
     a.shutdown()
 
 
-api = FastAPI(title="Ragly offline document intelligence", version=__version__, lifespan=lifespan)
+api = FastAPI(title="Falcon offline document intelligence", version=__version__, lifespan=lifespan)
 PUBLIC_PATHS = ("/api/auth/", "/api/health", "/assets/", "/docs", "/openapi.json", "/favicon")
 
 
@@ -675,6 +676,40 @@ def table_compute(req: dict):
         return {"answered": False,
                 "reason": "no table/column could be identified confidently for this question"}
     return {"answered": True, **res}
+
+
+# ---------------- visualisation planner ----------------
+#: One planner per workspace: the fact scan is the expensive part and it is cached inside.
+_PLANNERS: dict[str, Planner] = {}
+_PLANS: dict[str, dict] = {}
+
+
+def _planner(a) -> Planner:
+    key = f"{a.project_id}:{len(a.store.list_documents())}"
+    planner = _PLANNERS.get(key)
+    if planner is None:
+        _PLANNERS.clear()
+        planner = _PLANNERS[key] = Planner(a)
+    return planner
+
+
+@api.get("/api/visualize")
+def visualize(q: str | None = Query(default=None, max_length=300),
+              doc_ids: str | None = Query(default=None)):
+    """A structured visualisation of what is indexed, chosen to fit the question.
+
+    The knowledge graph is the representation underneath; this returns the *view* -- a
+    timeline, a summary of labelled figures, a readable relationship graph, a table -
+    with the document, page and wording behind every value. See :mod:`ragly_backend.visualize`.
+    """
+    a = app_state()
+    ids = [int(x) for x in (doc_ids or "").split(",") if x.strip().isdigit()] or None
+    key = f"{a.project_id}:{a.pack_key()}:{len(a.store.list_documents())}:{(q or '').strip().lower()}:{ids}"
+    if key not in _PLANS:
+        if len(_PLANS) > 32:
+            _PLANS.clear()
+        _PLANS[key] = _planner(a).plan(q, ids)
+    return _PLANS[key]
 
 
 # ---------------- entity graph ----------------

@@ -62,6 +62,9 @@ export const api = {
   pack: () => req('/api/pack'),
   retune: () => post('/api/pack/retune'),
   suggestions: () => req('/api/suggestions'),
+  visualize: (q, docIds) => req(`/api/visualize${q || docIds ? '?' : ''}`
+    + (q ? `q=${encodeURIComponent(q)}` : '')
+    + (docIds?.length ? `${q ? '&' : ''}doc_ids=${docIds.join(',')}` : '')),
   async upload(files) {
     const form = new FormData()
     for (const f of files) form.append('files', f)

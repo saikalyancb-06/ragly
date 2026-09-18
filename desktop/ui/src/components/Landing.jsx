@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
+import FalconLogo from './FalconLogo.jsx'
 import { Btn, Pill } from '../ui.jsx'
 
 const WORDS = ['contracts.', 'invoices.', 'manuals.', 'lab reports.', 'site photos.', 'spreadsheets.']
@@ -73,8 +74,8 @@ export default function Landing({ onEnter, auth, unlocked }) {
       <div className="land-wrap">
         <nav className="land-nav">
           <div className="brand">
-            <div className="mark">EV</div>
-            <div className="name">EdgeVault</div>
+            <FalconLogo size={28} />
+            <div className="name">Falcon</div>
           </div>
           <div className="spacer" style={{ flex: 1 }} />
           <Pill tone="good"><span className="dot" />Local processing</Pill>
@@ -84,7 +85,7 @@ export default function Landing({ onEnter, auth, unlocked }) {
         <header className="hero">
           <h1>Your private knowledge engine<br />for <Typewriter /></h1>
           <p className="sub">
-            EdgeVault indexes documents, images, tables and the relationships between them on your own
+            Falcon indexes documents, images, tables and the relationships between them on your own
             device, retrieves evidence with hybrid search, and answers with local AI — with citations you
             can open, and nothing sent to a cloud service.
           </p>

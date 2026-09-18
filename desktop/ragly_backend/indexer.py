@@ -62,6 +62,25 @@ class Indexer:
         for doc_id in self.store.queued_ids():
             self.q.put(doc_id)
         self._thread.start()
+        # A document can end up queued with nobody working on it: the app was restarted
+        # mid-index (startup puts "indexing" rows back in the queue), or a second Store
+        # instance reset the row. Nothing re-enqueued it, so it sat at "queued, 0 chunks"
+        # forever with half its chunks already written. This watchdog picks up anything the
+        # queue has forgotten; indexing replaces a document's chunks, so re-running is safe.
+        self._watchdog_thread = threading.Thread(target=self._watchdog, daemon=True,
+                                                 name="ragly-indexer-watchdog")
+        self._watchdog_thread.start()
+
+    def _watchdog(self, every: float = 5.0) -> None:
+        while not self._stop.wait(every):
+            try:
+                if self.current is not None or not self.q.empty():
+                    continue                      # work is already in flight
+                for doc_id in self.store.queued_ids():
+                    log.info("re-queuing document %s: queued with no worker", doc_id)
+                    self.q.put(doc_id)
+            except Exception as exc:              # a watchdog must never kill the process
+                log.debug("watchdog pass failed: %s", exc)
 
     def stop(self) -> None:
         self._stop.set()
@@ -135,8 +154,10 @@ class Indexer:
         self.current["stage"] = "storing pages"
         self.store.replace_pages(doc_id, result["pages"])
 
-        vecs = self.embedder.embed_documents([c.text for c in chunks]) if chunks else None
+        # the label goes up BEFORE the work, not after it: embedding 264 chunks takes half a
+        # minute and the screen was still saying "storing pages" for all of it
         self.current["stage"] = f"embedding {len(chunks)} chunks"
+        vecs = self.embedder.embed_documents([c.text for c in chunks]) if chunks else None
         if self.store.get_document(doc_id) is None:      # deleted meanwhile
             return
         if chunks:

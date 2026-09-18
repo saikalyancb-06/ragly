@@ -142,12 +142,23 @@ export default function Ask({ sys, settings, setSettings, suggestions, setSource
       onSources: (ev) => patch((m) => ({ ...m, sources: ev.sources })),
       onToken: (t) => patch((m) => ({ ...m, text: m.text + t })),
       onDone: (ev) => {
-        patch((m) => ({ ...m, text: ev.answer, sources: ev.sources || m.sources, citations: ev.citations,
+        // What the reader has already read stays on screen. The final event may carry a
+        // tidied or shortened version; swapping it in makes the answer appear to rewrite
+        // itself a second after it finished, which reads as a bug even when the new text is
+        // fine. The final text is used only when nothing was streamed (a refusal, an error).
+        patch((m) => ({ ...m,
+                        text: (m.text || '').trim() ? m.text : ev.answer,
+                        sources: ev.sources || m.sources, citations: ev.citations,
                         grounding: ev.grounding, timing: ev.timing, model: ev.model, refused: ev.refused,
                         route: ev.route || m.route }))
-        speak(ev.answer)
+        // read aloud exactly what is on screen
+        patch((m) => { speak(m.text || ev.answer); return m })
       },
-      onError: (e) => { setError(String(e.message || e)); patch((m) => ({ ...m, text: `⚠ ${e.message}` })) },
+      // An error after the answer has been read is reported beside it, never on top of it.
+      onError: (e) => {
+        setError(String(e.message || e))
+        patch((m) => ((m.text || '').trim() ? m : { ...m, text: `⚠ ${e.message}` }))
+      },
     })
     setBusy(false)
   }

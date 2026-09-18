@@ -50,7 +50,11 @@ export default function Documents({ sys, docs, pack, reload, setSource, addRef }
             <div className="item" key={d.id}>
               <div className="row">
                 <span className="name">{d.name}</span>
-                <Pill tone={TONE[d.status] || ''}>{d.status}</Pill>
+                <Pill tone={TONE[d.status] || ''}>
+                  {d.status === 'indexing' && sys?.indexing?.current?.doc_id === d.id
+                    ? sys.indexing.current.stage
+                    : d.status}
+                </Pill>
                 <div className="spacer" />
                 <Btn sm kind="ghost"
                      onClick={() => setSource({ doc_id: d.id, doc_name: d.name, page: 1, n: 1, text: '' })}>

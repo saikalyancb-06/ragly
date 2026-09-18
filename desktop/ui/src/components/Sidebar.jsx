@@ -1,4 +1,5 @@
 import React from 'react'
+import FalconLogo from './FalconLogo.jsx'
 import ProjectSwitcher from './ProjectSwitcher.jsx'
 
 export const GROUPS = [
@@ -12,7 +13,7 @@ export const GROUPS = [
     { id: 'ask', label: 'Ask', ic: '✦' },
     { id: 'photo', label: 'Photo Search', ic: '⌕' },
     { id: 'compare', label: 'Compare', ic: '⇄' },
-    { id: 'graph', label: 'Knowledge Graph', ic: '◈' },
+    { id: 'graph', label: 'Visualize', ic: '◈' },
   ] },
   { title: 'System', items: [
     { id: 'edge', label: 'Edge AI', ic: '▲' },
@@ -31,9 +32,9 @@ export default function Sidebar({ page, setPage, sys, onAdd, projects, onSwitchP
   }
   return (
     <aside className="side">
-      <div className="brand">
-        <div className="mark">EV</div>
-        <div className="name">EdgeVault</div>
+      <div className="brand" onClick={onHome} style={{ cursor: onHome ? 'pointer' : 'default' }}>
+        <FalconLogo size={26} />
+        <div className="name">Falcon</div>
       </div>
       <ProjectSwitcher projects={projects || []} active={sys?.project?.id}
                        onSwitch={onSwitchProject} onCreate={onCreateProject} onDelete={onDeleteProject} />
@@ -54,6 +55,9 @@ export default function Sidebar({ page, setPage, sys, onAdd, projects, onSwitchP
       <div className="foot">
         <span className="local"><span className="dot" />Local processing</span>
         <div style={{ marginTop: 8 }}>{sys?.hardware?.summary || 'Detecting hardware…'}</div>
+        <div style={{ marginTop: 6, opacity: .7 }} title="the build this install is running">
+          Build {sys?.build || '—'}{sys?.vision?.vision_model ? ' · vision model installed' : ' · no vision model'}
+        </div>
         <div className="row" style={{ marginTop: 10, justifyContent: 'space-between' }}>
           <span>{user?.display_name || 'Local user'}</span>
           <span className="row" style={{ gap: 4 }}>

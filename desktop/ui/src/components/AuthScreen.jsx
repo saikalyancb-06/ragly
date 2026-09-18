@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
+import FalconLogo from './FalconLogo.jsx'
 import { api } from '../api.js'
 import { Btn, Err, Note, Pill } from '../ui.jsx'
 
@@ -36,8 +37,8 @@ export default function AuthScreen({ auth, onDone, onBack }) {
       <div className="grid-lines" />
       <div className={`auth-card ${shake ? 'shake' : ''}`}>
         <div className="brand" style={{ padding: 0, marginBottom: 14 }}>
-          <div className="mark">EV</div>
-          <div className="name">EdgeVault</div>
+          <FalconLogo size={28} />
+          <div className="name">Falcon</div>
         </div>
         <h2>{mode === 'register' ? 'Set a passcode for this device' : 'Welcome back'}</h2>
         <Note style={{ marginTop: 6 }}>

@@ -27,42 +27,51 @@ log = logging.getLogger("ragly.concepts")
 VOCABULARY: dict[str, tuple[str, ...]] = {
     "vehicles": ("car", "truck", "bus", "motorcycle", "bicycle", "van", "tractor", "aeroplane",
                  "boat", "train", "wheel", "tyre", "number plate", "windscreen", "car bumper",
-                 "damaged car", "road", "traffic"),
+                 "damaged car", "road", "traffic", "auto rickshaw", "scooter", "lorry", "sedan", "suv"),
     "workplace": ("laptop", "computer monitor", "keyboard", "mouse", "mobile phone", "desk",
                   "office chair", "printer", "server rack", "cable", "workstation", "whiteboard",
-                  "notebook", "pen", "coffee mug", "water bottle", "headphones", "camera"),
+                  "notebook", "pen", "coffee mug", "water bottle", "headphones", "camera",
+                  "desktop computer", "tablet", "projector", "filing cabinet", "bookshelf", "meeting room"),
     "documents": ("invoice", "receipt", "bank statement", "contract", "form", "certificate",
                   "identity card", "passport", "cheque", "spreadsheet", "printed table",
-                  "handwritten note", "signature", "stamp", "letterhead", "barcode", "qr code"),
+                  "handwritten note", "signature", "stamp", "letterhead", "barcode", "qr code",
+                  "tax invoice", "purchase order", "shipping label", "medical report", "lab report",
+                  "agreement", "affidavit", "bill of lading", "driving licence", "pan card", "aadhaar card"),
     "people": ("person", "group of people", "portrait photograph", "hand", "face", "crowd",
-               "worker wearing a helmet", "engineer", "doctor", "student"),
+               "worker wearing a helmet", "engineer", "doctor", "student", "technician", "patient", "nurse"),
     "places": ("building", "office interior", "factory", "warehouse", "construction site",
-               "shop front", "kitchen", "classroom", "hospital", "street", "parking area"),
+               "shop front", "kitchen", "classroom", "hospital", "street", "parking area",
+               "laboratory", "clinic", "server room", "reception area"),
     "equipment": ("electrical panel", "switchgear", "transformer", "circuit breaker", "meter",
                   "pipe", "valve", "motor", "generator", "solar panel", "machine", "tool",
-                  "screw", "bolt", "wire"),
+                  "screw", "bolt", "wire", "pump", "engine", "circuit board", "battery", "gauge", "pressure meter"),
     "charts": ("bar chart", "line graph", "pie chart", "flow diagram", "map", "floor plan",
-               "circuit diagram", "screenshot", "logo", "signature scan"),
+               "circuit diagram", "screenshot", "logo", "signature scan", "flowchart", "schematic",
+               "scatter plot", "histogram", "infographic", "table of figures"),
     "nature": ("plant", "tree", "flower", "leaf", "garden", "soil", "animal", "dog", "cat",
-               "bird", "food", "fruit", "vegetable", "sky", "water"),
+               "bird", "food", "fruit", "vegetable", "sky", "water", "landscape", "sunlight"),
 }
 
 #: Words that mean the same thing to a person searching. Used only to widen a QUERY, never
 #: to award a concept to an image.
 SYNONYMS: dict[str, tuple[str, ...]] = {
-    "vehicle": ("car", "truck", "bus", "van", "motorcycle", "tractor", "automobile"),
-    "automobile": ("car", "truck", "van"),
-    "bike": ("motorcycle", "bicycle"),
+    "vehicle": ("car", "truck", "bus", "van", "motorcycle", "tractor", "automobile", "scooter"),
+    "automobile": ("car", "truck", "van", "sedan", "suv"),
+    "bike": ("motorcycle", "bicycle", "scooter"),
     "cellphone": ("mobile phone",), "smartphone": ("mobile phone",), "phone": ("mobile phone",),
-    "computer": ("laptop", "computer monitor"), "pc": ("laptop", "computer monitor"),
-    "screen": ("computer monitor",), "display": ("computer monitor",),
+    "computer": ("laptop", "computer monitor", "desktop computer", "workstation"),
+    "pc": ("laptop", "computer monitor", "desktop computer"),
+    "screen": ("computer monitor", "display screen"), "display": ("computer monitor",),
     "mug": ("coffee mug",), "cup": ("coffee mug",),
-    "bill": ("invoice", "receipt"), "id": ("identity card",), "id card": ("identity card",),
-    "badge": ("identity card",), "employee id": ("identity card",),
-    "statement": ("bank statement",), "chart": ("bar chart", "line graph", "pie chart"),
-    "graph": ("line graph", "bar chart"), "diagram": ("flow diagram", "circuit diagram"),
-    "workstation": ("laptop", "desk", "computer monitor"),
-    "office": ("office interior", "desk"), "machinery": ("machine", "motor", "generator"),
+    "bill": ("invoice", "receipt", "tax invoice"), "id": ("identity card",), "id card": ("identity card",),
+    "badge": ("identity card",), "employee id": ("identity card",), "pass": ("identity card",),
+    "statement": ("bank statement",), "chart": ("bar chart", "line graph", "pie chart", "flow diagram"),
+    "graph": ("line graph", "bar chart", "scatter plot"), "diagram": ("flow diagram", "circuit diagram", "schematic", "flowchart"),
+    "workstation": ("laptop", "desk", "computer monitor", "office chair"),
+    "office": ("office interior", "desk", "workstation"), "machinery": ("machine", "motor", "generator", "engine"),
+    "report": ("lab report", "medical report", "spreadsheet"), "doctor": ("doctor", "hospital", "clinic"),
+    "worker": ("worker wearing a helmet", "engineer", "technician"), "man": ("person", "portrait photograph"),
+    "woman": ("person", "portrait photograph"), "sign": ("signature", "signature scan"),
 }
 
 PROMPT = "a photo of {}"
@@ -77,6 +86,20 @@ def all_concepts() -> list[str]:
 
 def _article(word: str) -> str:
     return f"an {word}" if word[:1] in "aeiou" else f"a {word}"
+
+
+def clean_image_query(text: str) -> str:
+    """Strip conversational filler from search query to focus on the semantic visual subject."""
+    q = (text or "").strip()
+    patterns = [
+        r"^(?:please\s+)?(?:show|find|search|get|list|display|give)(?:\s+me)?\s+(?:all\s+)?(?:the\s+)?(?:images?|photos?|pictures?)\s+(?:of|with|containing|showing|having|about)?\s*",
+        r"^(?:find|show|search)\s+(?:an?\s+)?(?:image|photo|picture)\s+(?:of|with|containing|showing|having)?\s*",
+        r"^(?:images?|photos?|pictures?)\s+(?:of|with|containing|showing|having|about)\s*",
+        r"^(?:where\s+is\s+the\s+)?(?:image|photo|picture)\s+(?:of|with)?\s*",
+    ]
+    for p in patterns:
+        q = re.sub(p, "", q, flags=re.IGNORECASE).strip()
+    return q or text.strip()
 
 
 class ConceptTagger:
@@ -136,11 +159,12 @@ def describe(objects: list[str]) -> str:
 
 def expand_query(question: str) -> list[str]:
     """Concept words a query is asking about, including the obvious synonyms."""
-    words = re.findall(r"[a-z][a-z ]{2,}", (question or "").lower())
-    text = " ".join(words)
+    clean = clean_image_query(question)
+    words = re.findall(r"[a-z0-9][a-z0-9 \-]{1,}", (clean or question or "").lower())
+    text = " " + " ".join(words) + " "
     wanted: list[str] = []
     for concept in all_concepts():
-        if concept in text:
+        if re.search(rf"\b{re.escape(concept)}\b", text):
             wanted.append(concept)
     for term, alts in SYNONYMS.items():
         if re.search(rf"\b{re.escape(term)}\b", text):

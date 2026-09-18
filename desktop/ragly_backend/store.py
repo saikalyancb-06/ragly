@@ -90,6 +90,7 @@ class Store:   # noqa: E301  (MultimodalMixin is attached at the bottom)
             # documents left mid-index by a crash go back to the queue
             self.conn.execute("UPDATE documents SET status='queued' WHERE status='indexing'")
             self.conn.commit()
+        self.repair_counts()
         self._img_matrix = None
         self._img_ids = None
         self.active_project: int | None = None
@@ -300,6 +301,26 @@ class Store:   # noqa: E301  (MultimodalMixin is attached at the bottom)
             )
             self.conn.commit()
             return int(cur.lastrowid)
+
+    def repair_counts(self) -> int:
+        """Make the counters on each document agree with what is actually stored.
+
+        A document interrupted mid-index keeps the chunks it had already written while its
+        counter stays at 0 — the row then reads "ready, 0 chunks", or sits at "queued" with
+        hundreds of orphan chunks. Counting the real rows is cheap and makes the numbers on
+        screen true.
+        """
+        with self._lock:
+            cur = self.conn.execute("""
+                UPDATE documents SET
+                    chunk_count = (SELECT COUNT(*) FROM chunks c WHERE c.doc_id = documents.id),
+                    table_count = (SELECT COUNT(*) FROM tables t WHERE t.doc_id = documents.id),
+                    image_count = (SELECT COUNT(*) FROM images i WHERE i.doc_id = documents.id)
+                WHERE chunk_count <> (SELECT COUNT(*) FROM chunks c WHERE c.doc_id = documents.id)
+                   OR table_count <> (SELECT COUNT(*) FROM tables t WHERE t.doc_id = documents.id)
+                   OR image_count <> (SELECT COUNT(*) FROM images i WHERE i.doc_id = documents.id)""")
+            self.conn.commit()
+            return cur.rowcount or 0
 
     def set_status(self, doc_id: int, status: str, **fields) -> None:
         cols = ["status=?"] + [f"{k}=?" for k in fields]

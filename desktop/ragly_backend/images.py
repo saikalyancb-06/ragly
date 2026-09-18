@@ -489,9 +489,26 @@ class ImageEmbedder:
             out = self._visual.run(None, feeds)[0]
         return self._normalise(out[0] if np.ndim(out) > 1 else out)
 
-    def embed_text(self, text: str) -> np.ndarray:
+    def embed_text(self, text: str, ensemble: bool = True) -> np.ndarray:
         if not self._load():
             raise self._unavailable()
+        raw = (text or "").strip()
+        if not raw:
+            return np.zeros(self.dim, dtype=np.float32)
+        if not ensemble or len(raw.split()) > 8:
+            return self._embed_single_text(raw)
+        templates = [
+            raw,
+            f"a photo of a {raw}",
+            f"a photo of {raw}",
+            f"a picture of {raw}",
+            f"an image showing {raw}",
+        ]
+        vecs = [self._embed_single_text(t) for t in templates]
+        combined = np.sum(vecs, axis=0)
+        return self._normalise(combined)
+
+    def _embed_single_text(self, text: str) -> np.ndarray:
         ids, mask = self.tokenize(text)
         names = {i.name for i in self._textual.get_inputs()}
         feeds: dict[str, np.ndarray] = {"input_ids": ids}
@@ -502,6 +519,7 @@ class ImageEmbedder:
         with self._lock:
             out = self._textual.run(None, feeds)[0]
         return self._normalise(out[0] if np.ndim(out) > 1 else out)
+
 
 
 # ======================================================================================
@@ -775,53 +793,61 @@ class ImageIndex:
 
     def search_by_text(self, query: str, limit: int = 12) -> list[dict]:
         """Find images from a text query: CLIP when installed, OCR keywords always."""
+        from .concepts import clean_image_query, expand_query as _expand
+
+        clean_q = clean_image_query(query)
         pool = max(limit * 3, 24)
         vector_hits: list[tuple[int, float]] = []
         self.last_query_vector = None
         if self.clip_ready():
             try:
-                self.last_query_vector = self.embedder.embed_text(query)
+                self.last_query_vector = self.embedder.embed_text(clean_q or query, ensemble=True)
                 vector_hits = self._vector_ranks(self.last_query_vector, pool)
             except Exception as exc:
                 log.warning("CLIP text embedding failed: %s", exc)
-        text_hits = self._text_ranks(query, pool)
+        text_hits = self._text_ranks(clean_q or query, pool)
         concept_hits, matched_concepts = self._concept_ranks(query, pool)
+        if not concept_hits and clean_q != query:
+            concept_hits, matched_concepts = self._concept_ranks(clean_q, pool)
 
         fused: dict[int, float] = {}
-        self._rrf(fused, vector_hits)
-        self._rrf(fused, text_hits)
-        self._rrf(fused, concept_hits, weight=1.2)   # what the picture contains is strong evidence
+        self._rrf(fused, vector_hits, weight=1.5)
+        self._rrf(fused, text_hits, weight=1.0)
+        self._rrf(fused, concept_hits, weight=1.3)   # what the picture contains is strong evidence
         v_ids = {i for i, _ in vector_hits}
         t_ids = set(text_hits)
         cosine = {i: s for i, s in vector_hits}
 
-        # "Find images containing a vehicle" on a corpus with no vehicle in it must say so.
-        # The decision is made by what the vision model recorded about each picture at indexing
-        # time, not by a similarity cut-off: it already looked at every image and listed what was
-        # in it. So when a query names things none of the images contain, and no text in any image
-        # mentions them either, the honest answer is that nothing matched.
-        from .concepts import expand_query as _expand
-
-        # The vision model already wrote down how well its best word describes each picture.
-        # A query that scores clearly below that yardstick is not describing the picture, so it
-        # is dropped. This is a comparison inside one embedding space, not a fixed threshold.
+        # Filtering absent concepts and background noise:
+        # A comparison inside embedding space ensures random background noise is not returned
+        # for non-existent objects, while genuine visual matches remain discoverable.
         if vector_hits and not concept_hits and not text_hits:
             rows = self._rows([i for i, _ in vector_hits])
             kept: list[tuple[int, float]] = []
             for image_id, score in vector_hits:
                 yardstick = float((rows.get(image_id) or {}).get("concept_score") or 0.0)
-                if yardstick <= 0 or score >= CONCEPT_RATIO * yardstick:
-                    kept.append((image_id, score))
+                # If yardstick exists, check score relative to yardstick or absolute visual cutoff
+                if yardstick > 0 and score < 0.78 * yardstick:
+                    continue
+                if score < 0.18:
+                    continue
+                kept.append((image_id, score))
             if not kept:
                 log.info("no image matches %r as well as its own description", query)
                 return []
             vector_hits = kept
+            v_ids = {i for i, _ in vector_hits}
+            fused = {i: s for i, s in fused.items() if i in v_ids}
 
         asked_for = _expand(query)
         if asked_for and not concept_hits and not text_hits:
-            log.info("no image contains %s (%d indexed images checked)", ", ".join(asked_for[:3]),
-                     len(vector_hits))
-            return []
+            # If the user explicitly asked for specific concepts (e.g. "car", "dog"),
+            # ensure top visual score is high enough, otherwise treat as absent from corpus
+            top_score = max((cosine.get(i, 0.0) for i in v_ids), default=0.0)
+            if top_score < 0.22:
+                log.info("no image contains %s (%d indexed images checked, top score=%.3f)",
+                         ", ".join(asked_for[:3]), len(vector_hits), top_score)
+                return []
 
         def reason(image_id: int) -> str:
             found = matched_concepts.get(image_id)
@@ -829,7 +855,12 @@ class ImageIndex:
                 return "contains " + ", ".join(found[:3])
             if image_id in v_ids and image_id in t_ids:
                 return _BOTH
-            return _VISUAL if image_id in v_ids else _TEXT_IN_IMAGE
+            if image_id in v_ids:
+                sim = cosine.get(image_id)
+                if sim is not None:
+                    return f"visual similarity ({round(sim * 100)}%)"
+                return _VISUAL
+            return _TEXT_IN_IMAGE
 
         def extra(image_id: int, row: dict) -> dict:
             import json as _json

@@ -52,7 +52,7 @@ export default function Library({ docs, pack, onUpload, onDelete, onRetune, inde
         ))}
       </div>
 
-      <h3>What Ragly learned</h3>
+      <h3>What Falcon learned</h3>
       {!pack ? (
         <div className="empty">Import documents to auto-tune</div>
       ) : (

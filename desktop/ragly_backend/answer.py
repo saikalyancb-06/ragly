@@ -606,7 +606,30 @@ class Answerer:
                     cleaned = f'The documents say: "{line.rstrip(".")}" [{number}].'
                     refused, reason, valid = False, "quoted_source", [number]
 
-        if not refused:
+        if not refused and summarising:
+            # A summary is not a claim about one fact, so "every sentence carries a citation"
+            # is the wrong test for it -- applying it threw away whole summaries and left the
+            # reader with "Not found in your documents" after three lines had already streamed.
+            # What still holds: a summary may not contain a figure the sources do not.
+            sources_text = "\n".join(h.text for h in hits)
+            unsupported, hedges = verify_claims(cleaned, sources_text)
+            attached, dropped_sentences = attach_citations(cleaned, hits)
+            attached = tidy(attached)
+            attached, valid, invalid2 = check_citations(attached, len(hits))
+            invalid += invalid2
+            if attached.strip():
+                cleaned = attached
+            if unsupported:
+                kept = [line for line in sentences(cleaned)
+                        if not any(value in line for value in unsupported)]
+                trimmed = tidy(" ".join(kept).strip())
+                if trimmed:
+                    cleaned, reason = trimmed, "unsupported_values_removed"
+                else:
+                    refused, reason, cleaned, valid = True, "unsupported_values", NOT_FOUND, []
+            if not cleaned.strip():
+                refused, reason, cleaned, valid = True, "empty_answer", NOT_FOUND, []
+        elif not refused:
             sources_text = "\n".join(h.text for h in hits)
             unsupported, hedges = verify_claims(cleaned, sources_text)
             if settings.strict_grounding:
@@ -614,11 +637,18 @@ class Answerer:
                 cleaned = tidy(cleaned)
                 cleaned, valid, invalid2 = check_citations(cleaned, len(hits))
                 invalid += invalid2
-                if unsupported or hedges or not valid or not cleaned.strip():
+                if unsupported or hedges or not cleaned.strip():
                     refused = True
                     reason = ("unsupported_values" if unsupported else
-                              "hedged_language" if hedges else "uncited")
+                              "hedged_language" if hedges else "empty_answer")
                     cleaned, valid = NOT_FOUND, []
+                elif not valid:
+                    # The answer contains no figure the sources lack and no hedging: it is
+                    # grounded. It simply carries no [n] marker, because a 3B model often
+                    # forgets to write one. Throwing the whole answer away for a missing
+                    # bracket left the reader with "Not found in your documents" for
+                    # questions the documents plainly answer, which is the worse error.
+                    reason = "uncited_but_supported"
             elif unsupported:
                 reason = reason or "unsupported_values"
 

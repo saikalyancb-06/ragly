@@ -10,7 +10,7 @@ import Benchmarks from './pages/Benchmarks.jsx'
 import Compare from './pages/Compare.jsx'
 import Documents from './pages/Documents.jsx'
 import EdgeAI from './pages/EdgeAI.jsx'
-import Graph from './pages/Graph.jsx'
+import Visualize from './pages/Visualize.jsx'
 import Images from './pages/Images.jsx'
 import Models from './pages/Models.jsx'
 import Overview from './pages/Overview.jsx'
@@ -40,14 +40,19 @@ export default function App() {
   })
   const addRef = useRef(null)
 
+  // The two calls are independent. Chaining them meant a slow or failed /api/system — which
+  // happens exactly when a big PDF is pegging the CPU — skipped the document refresh, so a
+  // file that was already indexing still read "queued" until something else forced a reload.
   const reload = useCallback(async () => {
-    try {
-      const s = await api.system()
+    const [system, documents] = await Promise.allSettled([api.system(), api.documents()])
+    if (system.status === 'fulfilled') {
+      const s = system.value
       setSys(s); setPack(s.pack); setProjects(s.projects || [])
       setLocalSettings((cur) => ({ ...cur, ...s.settings }))
-      setDocs((await api.documents()).documents)
-      setError('')
-    } catch (e) { setError(String(e.message || e)) }
+    }
+    if (documents.status === 'fulfilled') setDocs(documents.value.documents)
+    if (system.status === 'fulfilled' || documents.status === 'fulfilled') setError('')
+    else setError(String(documents.reason?.message || documents.reason || 'backend unreachable'))
   }, [])
 
   // first load: is a passcode set, and is the stored session still valid?
@@ -68,11 +73,14 @@ export default function App() {
   }, [])
 
   useEffect(() => { if (screen === 'app') reload() }, [reload, screen])
+  // While anything is still being indexed the list is polled quickly, so "queued" turns into
+  // "indexing" and then "ready" while you watch; otherwise every four seconds is plenty.
+  const working = docs.some((d) => d.status !== 'ready' && d.status !== 'error') || !!sys?.indexing?.current
   useEffect(() => {
     if (screen !== 'app') return undefined
-    const t = setInterval(reload, 4000)
+    const t = setInterval(reload, working ? 1200 : 4000)
     return () => clearInterval(t)
-  }, [reload, screen])
+  }, [reload, screen, working])
   useEffect(() => { api.suggestions().then((r) => setSuggestions(r.items || (r.questions || []).map((q) => ({ question: q })))).catch(() => {}) }, [pack])
 
   const setSettings = async (values) => {
@@ -117,7 +125,7 @@ export default function App() {
     ask: <Ask {...shared} suggestions={suggestions} prefill={prefill} clearPrefill={() => setPrefill('')} />,
     photo: <PhotoSearch {...shared} />,
     compare: <Compare {...shared} />,
-    graph: <Graph {...shared} />,
+    graph: <Visualize {...shared} />,
     edge: <EdgeAI {...shared} />,
     bench: <Benchmarks />,
     models: <Models />,

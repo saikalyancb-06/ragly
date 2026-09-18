@@ -3,9 +3,12 @@ import { api } from '../api.js'
 import { Btn, Card, Empty, Err, Note, Pill, Seg } from '../ui.jsx'
 
 const pct = (r) => {
-  const v = r.similarity != null ? r.similarity : null
-  if (v != null) return `${Math.round(Math.max(0, Math.min(1, v)) * 100)}%`
+  if (r.similarity != null) {
+    const scaled = Math.min(99, Math.max(35, Math.round(((r.similarity - 0.16) / 0.18) * 40 + 55)))
+    return `${scaled}%`
+  }
   if (r.phash_distance != null) return `${Math.max(0, 100 - r.phash_distance * 8)}%`
+  if (r.score != null) return `${Math.round(Math.min(95, r.score * 100))}%`
   return '—'
 }
 
